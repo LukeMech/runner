@@ -23,8 +23,6 @@ jobs:
 
       - name: Install OpenSSH server
         run: |
-          sudo apt update
-          sudo apt install openssh-server -y
           sudo systemctl start ssh
 
       - name: Run forever
