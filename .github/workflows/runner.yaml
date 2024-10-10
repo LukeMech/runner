@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  setup:
+  remote:
     runs-on: ubuntu-latest
     
     steps:
@@ -14,16 +14,14 @@ jobs:
           sudo dpkg -i cloudflared.deb
           sudo cloudflared service install ${{ secrets.CLOUDFLARED_TOKEN }}
           sudo systemctl start cloudflared
+          
+          sudo systemctl start ssh
 
       - name: Add 'remote' user with sudo privileges
         run: |
           sudo useradd -m remote
           echo "remote:${{ secrets.REMOTE_PASSWORD }}" | sudo chpasswd
           echo 'remote ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
-
-      - name: Install OpenSSH server
-        run: |
-          sudo systemctl start ssh
 
       - name: Run forever
         run: while true; do sleep 1000; done
