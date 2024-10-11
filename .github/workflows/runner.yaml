@@ -6,72 +6,46 @@ on:
 jobs:
   remote:
     runs-on: ubuntu-latest
-    container:
-      image: archlinux:latest
-      options: --privileged
-      
+    
     steps:
-      - name: Configure system
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+          
+      - name: Update system
         run: |
-          # Define user name and group / system language
-          USER=build
-          LANGUAGE=pl_PL.UTF-8
+          sudo apt update
+          sudo apt upgrade -y
       
-          # Initialize pacman keys
-          pacman-key --init && \
-          pacman-key --populate archlinux && \
-          pacman -Sy archlinux-keyring --noconfirm
-      
-          # Update the system
-          pacman -Syu base-devel --noconfirm
-      
-          # Enable color output, disable sandbox, and disable debug packages
-          sed -i 's/^#Color/Color/' /etc/pacman.conf
-          sed -i 's/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf
-          sed -i '/^OPTIONS=(/s/\(\s\)debug/\1!debug/' /etc/makepkg.conf 
-      
-          # Add Chaotic AUR repository
-          pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com && \
-          pacman-key --lsign-key 3056513887B78AEB && \
-          pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' --noconfirm && \
-          pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' --noconfirm
-      
-          # Append Chaotic AUR repository to pacman configuration
-          echo -e "\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" >> /etc/pacman.conf
-      
-          # Install yay from Chaotic AUR
-          pacman -Syu yay wget --noconfirm
-      
-          # Configure user
-          groupadd -g 1000 $USER && \
-          useradd -ms /bin/bash -p $(openssl passwd -1 $USER) -u 1028 -g 1000 $USER && \
-          echo "%$USER ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
-
-          wget -O /usr/share/i18n/locales/pl_PL "https://raw.githubusercontent.com/bminor/glibc/refs/heads/master/localedata/locales/pl_PL" 
-          # Configure locale
-          echo "$LANGUAGE UTF-8" >> /etc/locale.gen && \
-          locale-gen && \
-          localectl set-locale LANG=$LANGUAGE
-
-      - name: Install cloudflared
+      - name: Install Cloudflared
         run: |
-          pacman -Syu cloudflared --noconfirm --needed
-          cloudflared service install ${{ secrets.CLOUDFLARED_TOKEN }}
-          systemctl start cloudflared
+          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+          sudo cloudflared service install ${{ secrets.CLOUDFLARED_TOKEN }}
+          sudo systemctl start cloudflared
 
-      - name: Install code-server
+      - name: Add 'remote' user with sudo privileges
         run: |
-          sudo -u build yay -Syu code-server --noconfirm
+          sudo useradd -m code
+          echo "code:${{ secrets.REMOTE_PASSWORD }}" | sudo chpasswd
+          echo 'code ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
+
+      - name: Install and run forever code-server
+        run: |
+          curl -fsSL https://code-server.dev/install.sh | sh
+          
           sudo systemctl start code-server@code
           sleep 1
           sudo systemctl stop code-server@code
-
-      - name: Configure code-server
-        run: |
           sudo -u code sed -i 's/bind-addr: 127.0.0.1:8080/bind-addr: 0.0.0.0:8080/' /home/code/.config/code-server/config.yaml
-          sudo -u code sed -i 's/^password: .*/password: ${{ secrets.CODE_PASSWORD }}/' /home/code/.config/code-server/config.yaml
+          sudo -u code sed -i 's/^password: .*/password: ${{ secrets.REMOTE_PASSWORD }}/' /home/code/.config/code-server/config.yaml
+    
+          sudo systemctl start code-server@code
 
-          wget https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/cpptools/1.22.8/vspackage?targetPlatform=linux-x64
-          
       - name: Run forever
-        run: sudo systemctl start code-server@code && while true; do sleep 60; done
+        run: while true; do sleep 60; done
