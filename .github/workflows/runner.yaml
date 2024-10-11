@@ -14,14 +14,18 @@ jobs:
           sudo dpkg -i cloudflared.deb
           sudo cloudflared service install ${{ secrets.CLOUDFLARED_TOKEN }}
           sudo systemctl start cloudflared
-          
-          sudo systemctl start ssh
 
       - name: Add 'remote' user with sudo privileges
         run: |
           sudo useradd -m remote
           echo "remote:${{ secrets.REMOTE_PASSWORD }}" | sudo chpasswd
           echo 'remote ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
+	  sudo mkdir -p /home/remote
+	  sudo chown -R remote:remote /home/remote
+	  sudo chmod 755 /home/remote
 
-      - name: Run forever
-        run: while true; do sleep 1000; done
+      - name: Install and run forever code-server
+        run: | 
+          sudo -u remote curl -fsSL https://code-server.dev/install.sh | sh
+	  PASSWORD=${{ secrets.REMOTE_PASSWORD }}
+          sudo -u remote code-server --bind-addr 0.0.0.0:8080 --password $PASSWORD
