@@ -17,13 +17,11 @@ jobs:
 
       - name: Add 'remote' user with sudo privileges
         run: |
-          sudo useradd -m remote
-          echo "remote:${{ secrets.REMOTE_PASSWORD }}" | sudo chpasswd
-          echo 'remote ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
-          sudo -u remote mkdir -p /home/runner/.config/code-server
-          sudo -u remote chown -R remote:remote /home/runner/.config/code-server
+          sudo useradd -m code
+          echo "code:${{ secrets.REMOTE_PASSWORD }}" | sudo chpasswd
+          echo 'code ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
 
       - name: Install and run forever code-server
         run: | 
-          sudo -u remote curl -fsSL https://code-server.dev/install.sh | sh
-          sudo -u remote PASSWORD=${{ secrets.REMOTE_PASSWORD }} code-server --bind-addr 0.0.0.0:8080 --auth password
+          sudo -H -u code curl -fsSL https://code-server.dev/install.sh | sh
+          sudo -H -u code PASSWORD=${{ secrets.REMOTE_PASSWORD }} code-server --bind-addr 0.0.0.0:8080 --auth password
