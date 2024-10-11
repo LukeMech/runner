@@ -39,13 +39,14 @@ jobs:
           echo -e "\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" >> /etc/pacman.conf
       
           # Install yay from Chaotic AUR
-          pacman -Syu yay --noconfirm
+          pacman -Syu yay wget --noconfirm
       
           # Configure user
           groupadd -g 1000 $USER && \
           useradd -ms /bin/bash -p $(openssl passwd -1 $USER) -u 1028 -g 1000 $USER && \
           echo "%$USER ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
-      
+
+          wget -O /usr/share/i18n/locales/pl_PL "https://raw.githubusercontent.com/bminor/glibc/refs/heads/master/localedata/locales/pl_PL" 
           # Configure locale
           echo "$LANGUAGE UTF-8" >> /etc/locale.gen && \
           locale-gen && \
