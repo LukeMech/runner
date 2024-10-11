@@ -6,32 +6,70 @@ on:
 jobs:
   remote:
     runs-on: ubuntu-latest
-    
+    container:
+      image: archlinux:latest
+      
     steps:
-      - name: Install Cloudflared
+      - name: Configure system
         run: |
-          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared.deb
-          sudo cloudflared service install ${{ secrets.CLOUDFLARED_TOKEN }}
-          sudo systemctl start cloudflared
+          # Define user name and group / system language
+          USER=build
+          LANGUAGE=pl_PL
+      
+          # Initialize pacman keys
+          pacman-key --init && \
+          pacman-key --populate archlinux && \
+          pacman -Sy archlinux-keyring --noconfirm
+      
+          # Update the system
+          pacman -Syu base-devel --noconfirm --needed
+      
+          # Enable color output, disable sandbox, and disable debug packages
+          sed -i 's/^#Color/Color/' /etc/pacman.conf
+          sed -i 's/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf
+          sed -i '/^OPTIONS=(/s/\(\s\)debug/\1!debug/' /etc/makepkg.conf 
+      
+          # Add Chaotic AUR repository
+          pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com && \
+          pacman-key --lsign-key 3056513887B78AEB && \
+          pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' --noconfirm && \
+          pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' --noconfirm
+      
+          # Append Chaotic AUR repository to pacman configuration
+          echo -e "\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" >> /etc/pacman.conf
+      
+          # Install yay from Chaotic AUR
+          pacman -Syu yay --noconfirm --needed
+      
+          # Configure user
+          groupadd -g 1000 $USER && \
+          useradd -ms /bin/bash -p $(openssl passwd -1 $USER) -u 1028 -g 1000 $USER && \
+          echo "%$USER ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+      
+          # Configure locale
+          echo "$LANGUAGE.UTF-8 UTF-8" >> /etc/locale.gen && \
+          locale-gen && \
+          localectl set-locale LANG=$LANGUAGE.UTF-8
 
-      - name: Add 'remote' user with sudo privileges
+      - name: Install cloudflared
         run: |
-          sudo useradd -m code
-          echo "code:${{ secrets.REMOTE_PASSWORD }}" | sudo chpasswd
-          echo 'code ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
+          pacman -Syu cloudflared --noconfirm --needed
+          cloudflared service install ${{ secrets.CLOUDFLARED_TOKEN }}
+          systemctl start cloudflared
 
-      - name: Install and run forever code-server
+      - name: Install code-server
         run: |
-          curl -fsSL https://code-server.dev/install.sh | sh
-          
+          sudo -u build yay -Syu code-server --noconfirm
           sudo systemctl start code-server@code
           sleep 1
           sudo systemctl stop code-server@code
-          sudo -u code sed -i 's/bind-addr: 127.0.0.1:8080/bind-addr: 0.0.0.0:8080/' /home/code/.config/code-server/config.yaml
-          sudo -u code sed -i 's/^password: .*/password: ${{ secrets.REMOTE_PASSWORD }}/' /home/code/.config/code-server/config.yaml
-    
-          sudo systemctl start code-server@code
 
+      - name: Configure code-server
+        run: |
+          sudo -u code sed -i 's/bind-addr: 127.0.0.1:8080/bind-addr: 0.0.0.0:8080/' /home/code/.config/code-server/config.yaml
+          sudo -u code sed -i 's/^password: .*/password: ${{ secrets.CODE_PASSWORD }}/' /home/code/.config/code-server/config.yaml
+
+          wget https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode/vsextensions/cpptools/1.22.8/vspackage?targetPlatform=linux-x64
+          
       - name: Run forever
-        run: while true; do sleep 60; done
+        run: sudo systemctl start code-server@code && while true; do sleep 60; done
