@@ -24,4 +24,11 @@ jobs:
       - name: Install and run forever code-server
         run: |
           curl -fsSL https://code-server.dev/install.sh | sh
-          sudo su code -c 'PASSWORD=${{ secrets.REMOTE_PASSWORD }} code-server --bind-addr 0.0.0.0:8080 --auth password'
+          
+          sudo -u code sed -i 's/bind-addr: 127.0.0.1:8080/bind-addr: 0.0.0.0:8080/' /home/code/.config/code-server/config.yaml
+          sudo -u code sed -i 's/^password: .*/password: ${{ secrets.REMOTE_PASSWORD }}/' /home/code/.config/code-server/config.yaml
+          
+          sudo systemctl start code-server@code
+          
+      - name: Run forever
+        run: while true; do sleep 1000; done
