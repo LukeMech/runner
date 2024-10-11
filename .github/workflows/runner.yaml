@@ -26,5 +26,4 @@ jobs:
       - name: Install and run forever code-server
         run: | 
           sudo -u remote curl -fsSL https://code-server.dev/install.sh | sh
-          PASSWORD=${{ secrets.REMOTE_PASSWORD }}
-          sudo -u remote code-server --bind-addr 0.0.0.0:8080 --password $PASSWORD
+          sudo -u remote PASSWORD=${{ secrets.REMOTE_PASSWORD }} code-server --bind-addr 0.0.0.0:8080 --auth password
