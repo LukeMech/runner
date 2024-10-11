@@ -14,7 +14,7 @@ jobs:
         run: |
           # Define user name and group / system language
           USER=build
-          LANGUAGE=pl_PL
+          LANGUAGE=pl_PL.UTF-8
       
           # Initialize pacman keys
           pacman-key --init && \
@@ -47,9 +47,9 @@ jobs:
           echo "%$USER ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
       
           # Configure locale
-          echo "$LANGUAGE.UTF-8 UTF-8" >> /etc/locale.gen && \
+          echo "$LANGUAGE UTF-8" >> /etc/locale.gen && \
           locale-gen && \
-          localectl set-locale LANG=$LANGUAGE.UTF-8
+          localectl set-locale LANG=$LANGUAGE
 
       - name: Install cloudflared
         run: |
