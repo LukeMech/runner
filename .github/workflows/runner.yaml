@@ -26,7 +26,7 @@ jobs:
           curl -fsSL https://code-server.dev/install.sh | sh
           
           sudo systemctl start code-server@code
-          sleep 1000
+          sleep 1
           sudo systemctl stop code-server@code
           sudo -u code sed -i 's/bind-addr: 127.0.0.1:8080/bind-addr: 0.0.0.0:8080/' /home/code/.config/code-server/config.yaml
           sudo -u code sed -i 's/^password: .*/password: ${{ secrets.REMOTE_PASSWORD }}/' /home/code/.config/code-server/config.yaml
@@ -34,4 +34,4 @@ jobs:
           sudo systemctl start code-server@code
 
       - name: Run forever
-        run: while true; do sleep 1000; done
+        run: while true; do sleep 60; done
