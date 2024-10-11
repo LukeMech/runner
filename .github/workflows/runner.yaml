@@ -22,6 +22,6 @@ jobs:
           echo 'code ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
 
       - name: Install and run forever code-server
-        run: | 
-          sudo -H -u code curl -fsSL https://code-server.dev/install.sh | sh
-          sudo -H -u code PASSWORD=${{ secrets.REMOTE_PASSWORD }} code-server --bind-addr 0.0.0.0:8080 --auth password
+        run: |
+          sudo -H -u code bash -c 'export HOME=/home/code; curl -fsSL https://code-server.dev/install.sh | sh'
+          sudo -H -u code bash -c 'export HOME=/home/code; PASSWORD=${{ secrets.REMOTE_PASSWORD }} code-server --bind-addr 0.0.0.0:8080 --auth password'
