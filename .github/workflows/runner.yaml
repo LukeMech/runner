@@ -19,14 +19,12 @@ jobs:
         run: |
           sudo useradd -m remote
           echo "remote:${{ secrets.REMOTE_PASSWORD }}" | sudo chpasswd
-	  echo 'remote ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
-   
+          echo 'remote ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
+          sudo chown -R remote:remote /home/remote
+          sudo chmod 755 /home/remote
+	  
       - name: Install and run forever code-server
         run: | 
-	  sudo mkdir -p /home/remote
-   	  sudo chown -R remote:remote /home/remote
-	  sudo chmod 755 /home/remote
           sudo -u remote curl -fsSL https://code-server.dev/install.sh | sh
-	  PASSWORD=${{ secrets.REMOTE_PASSWORD }}
+          PASSWORD=${{ secrets.REMOTE_PASSWORD }}
           sudo -u remote code-server --bind-addr 0.0.0.0:8080 --password $PASSWORD
-	  
