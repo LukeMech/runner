@@ -22,7 +22,7 @@ jobs:
           pacman -Sy archlinux-keyring --noconfirm
       
           # Update the system
-          pacman -Syu base-devel --noconfirm --needed
+          pacman -Syu base-devel --noconfirm
       
           # Enable color output, disable sandbox, and disable debug packages
           sed -i 's/^#Color/Color/' /etc/pacman.conf
@@ -39,7 +39,7 @@ jobs:
           echo -e "\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" >> /etc/pacman.conf
       
           # Install yay from Chaotic AUR
-          pacman -Syu yay --noconfirm --needed
+          pacman -Syu yay --noconfirm
       
           # Configure user
           groupadd -g 1000 $USER && \
