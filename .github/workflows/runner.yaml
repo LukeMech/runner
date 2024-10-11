@@ -22,7 +22,7 @@ jobs:
           echo 'remote ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/remote
           sudo chown -R remote:remote /home/remote
           sudo chmod 755 /home/remote
-	  
+
       - name: Install and run forever code-server
         run: | 
           sudo -u remote curl -fsSL https://code-server.dev/install.sh | sh
